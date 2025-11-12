@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36511.14 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Form_QL_Khachsan_2.0", "Form_QL_Khachsan_2.0\Form_QL_Khachsan_2.0.csproj", "{C874559A-1CF3-422B-8DB8-CB1EBE0977C9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C874559A-1CF3-422B-8DB8-CB1EBE0977C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C874559A-1CF3-422B-8DB8-CB1EBE0977C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C874559A-1CF3-422B-8DB8-CB1EBE0977C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C874559A-1CF3-422B-8DB8-CB1EBE0977C9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A65C112A-1314-4677-8749-D5EF759C04E6}
+	EndGlobalSection
+EndGlobal
