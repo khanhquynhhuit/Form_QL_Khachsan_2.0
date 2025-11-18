@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -13,43 +14,32 @@ namespace Form_QL_Khachsan_2._0
 {
     public partial class QuanLyTaiKhoan : Form
     {
-        private OracleConnection connection;
-        string currentUser = database.User;
+        private string currentUser = database.User;
 
         public QuanLyTaiKhoan(OracleConnection conn)
         {
             InitializeComponent();
-            connection = conn;
-            LoadActiveSessions();
-            LoadActiveSessions_THIETBI(currentUser);
             lb_username.Text = $"Tài khoản hiện tại: {currentUser}";
+            LoadActiveSessions();
+            LoadActiveSessions_THIETBI();
         }
 
-        private void LoadActiveSessions_THIETBI(string username)
+        private void LoadActiveSessions_THIETBI()
         {
             try
             {
-                string connString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))" +
-                                    "(CONNECT_DATA=(SERVICE_NAME=orcl1)));User Id=QLKHACHSAN;Password=qlks;";
-
-                using (OracleConnection conn = new OracleConnection(connString))
+                using (OracleCommand cmd = new OracleCommand("SELECT fn_is_user_logged_in(:username) FROM dual", database.Get_Connect()))
                 {
-                    conn.Open();
-                    using (OracleCommand cmd = new OracleCommand("SELECT fn_is_user_logged_in(:username) FROM dual", conn))
-                    {
-                        cmd.Parameters.Add("username", OracleDbType.Varchar2).Value = username;
-
-                        object result = cmd.ExecuteScalar();
-                        int activeCount = Convert.ToInt32(result);
-
-                        // Hiển thị trong Label
-                        lb_sosession.Text = $"Số thiết bị đăng nhập: {activeCount}";
-                    }
+                    cmd.Parameters.Add("username", OracleDbType.Varchar2).Value = currentUser;
+                    object result = cmd.ExecuteScalar();
+                    int activeCount = Convert.ToInt32(result);
+                    lb_sosession.Text = $"Số thiết bị đăng nhập: {activeCount}";
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi kiểm tra số thiết bị: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi khi kiểm tra số thiết bị: " + ex.Message,
+                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -58,17 +48,17 @@ namespace Form_QL_Khachsan_2._0
         {
             try
             {
-                string adminConnString =
-                    "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))" +
+                string adminConn =
+                    "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=26.87.215.54)(PORT=1521))" +
                     "(CONNECT_DATA=(SERVICE_NAME=orcl1)));User Id=SYS;Password=sys;DBA Privilege=SYSDBA;";
-
-                using (OracleConnection conn = new OracleConnection(adminConnString))
+                using (OracleConnection conn = new OracleConnection(adminConn))
                 {
                     conn.Open();
                     using (OracleCommand cmd = new OracleCommand("PROC_GET_ACTIVE_SESSIONS", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.BindByName = true;
+
                         cmd.Parameters.Add("p_username", OracleDbType.Varchar2).Value = currentUser;
                         cmd.Parameters.Add("p_cursor", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
 
@@ -79,6 +69,7 @@ namespace Form_QL_Khachsan_2._0
                         dgv_thietbi.DataSource = dt;
                     }
                 }
+                
             }
             catch (Exception ex)
             {
@@ -91,27 +82,30 @@ namespace Form_QL_Khachsan_2._0
         {
             try
             {
-                string adminConnString =
-                    "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))" +
+                string adminConn =
+                    "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=26.87.215.54)(PORT=1521))" +
                     "(CONNECT_DATA=(SERVICE_NAME=orcl1)));User Id=SYS;Password=sys;DBA Privilege=SYSDBA;";
-
-                using (OracleConnection conn = new OracleConnection(adminConnString))
+                using (OracleConnection conn = new OracleConnection(adminConn))
                 {
                     conn.Open();
-
                     using (OracleCommand cmd = new OracleCommand("PROC_KILL_SESSION", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.BindByName = true;
+
                         cmd.Parameters.Add("p_sid", OracleDbType.Int32).Value = sid;
                         cmd.Parameters.Add("p_serial", OracleDbType.Int32).Value = serial;
 
                         cmd.ExecuteNonQuery();
                     }
                 }
+                    
 
                 MessageBox.Show("Đã ngắt kết nối thành công.", "Thành công",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                LoadActiveSessions(); // Refresh danh sách sau khi ngắt
+                LoadActiveSessions_THIETBI(); // Refresh số thiết bị
             }
             catch (Exception ex)
             {
@@ -123,6 +117,7 @@ namespace Form_QL_Khachsan_2._0
         private void btn_lammoi_Click(object sender, EventArgs e)
         {
             LoadActiveSessions();
+            LoadActiveSessions_THIETBI();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -137,11 +132,10 @@ namespace Form_QL_Khachsan_2._0
             int sid = Convert.ToInt32(dgv_thietbi.CurrentRow.Cells["SID"].Value);
             int serial = Convert.ToInt32(dgv_thietbi.CurrentRow.Cells["SERIAL#"].Value);
 
-            if (MessageBox.Show($"Bạn có chắc muốn ngắt kết nối thiết bị nàykhông?",
+            if (MessageBox.Show("Bạn có chắc muốn ngắt kết nối thiết bị này không?",
                 "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 KillSession(sid, serial);
-                LoadActiveSessions();
             }
         }
     }
