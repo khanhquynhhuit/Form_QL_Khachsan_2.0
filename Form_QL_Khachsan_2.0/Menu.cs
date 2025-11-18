@@ -17,22 +17,53 @@ namespace Form_QL_Khachsan_2._0
         private KQ co;
         public Menu()
         {
-            co = new KQ();
             InitializeComponent();
-            co.SetupSessionMonitor();
-            lb_chaomung.Text = $"Chào mừng {database.User} !";
+            CenterToScreen();
+
+            try
+            {
+                // Lấy connection duy nhất từ database.cs
+                conn = database.Get_Connect();
+                if (conn.State != System.Data.ConnectionState.Open)
+                    conn.Open();
+
+                // Tạo KQ dùng chung connection
+                co = new KQ(conn);
+                co.SetupSessionMonitor();
+
+                // Hiển thị chào mừng
+                lb_chaomung.Text = $"Chào mừng {database.User} !";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi khởi tạo Menu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnQuanLyTK_Click(object sender, EventArgs e)
         {
-            QuanLyTaiKhoan f = new QuanLyTaiKhoan(conn);
-            f.ShowDialog();
+            if (conn != null)
+            {
+                QuanLyTaiKhoan f = new QuanLyTaiKhoan(conn); // truyền connection chuẩn
+                f.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("Không có kết nối database!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btn_admin_Click(object sender, EventArgs e)
         {
-            MainFormN mnn = new MainFormN();
-            mnn.ShowDialog();
+            if (conn != null)
+            {
+                MainFormN mnn = new MainFormN(); // MainFormN đã tự lấy connection từ database.cs
+                mnn.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("Không có kết nối database!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btn_logout_Click(object sender, EventArgs e)
@@ -44,7 +75,7 @@ namespace Form_QL_Khachsan_2._0
             }
             else
             {
-                MessageBox.Show("Đăng xuất toàn bộ session thất bại!", "Thất bại", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Đăng xuất toàn bộ session thất bại!", "Thất bại", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
     }

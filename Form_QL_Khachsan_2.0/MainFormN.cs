@@ -20,53 +20,67 @@ namespace Form_QL_Khachsan_2._0
 
         private OracleConnection conn;
         private KQ co;
+        private DataTable originalTableData;  // dữ liệu gốc (chưa mã hóa)
+        private bool isEncryptedView = true;
+
         public MainFormN()
         {
-            co = new KQ();
             InitializeComponent();
-            co.SetupSessionMonitor();
+            CenterToScreen();
         }
 
         private void btnLogout_Click(object sender, EventArgs e)
         {
             if (database.DangXuatSession("qlkhachsan"))
             {
-                MessageBox.Show("Đăng xuất toàn bộ session thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Đăng xuất toàn bộ session thành công!");
                 Application.Exit();
             }
             else
             {
-                MessageBox.Show("Đăng xuất toàn bộ session thất bại!", "Thất bại", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Đăng xuất thất bại!");
             }
         }
 
         private void MainFormN_Load(object sender, EventArgs e)
         {
-            conn = database.Get_Connect();
+            try
+            {
+                // 🔥 Lấy connection từ database.cs (không tạo mới)
+                conn = database.Get_Connect();
 
-            if (conn.State != ConnectionState.Open)
-                conn.Open();
+                if (conn == null)
+                    throw new Exception("Không lấy được connection từ database.cs");
 
-            co = new KQ(conn);
+                if (conn.State != ConnectionState.Open)
+                    conn.Open();
 
-            chontb.Items.Add("KHACHHANG");
-            chontb.Items.Add("PHONG");
-            chontb.Items.Add("DATPHONG");
-            chontb.Items.Add("HOADON");
+                // 🔥 KQ dùng đúng connection
+                co = new KQ(conn);
+                co.SetupSessionMonitor();
 
-            LoadDoanhThu();
+                // Load danh sách table
+                chontb.Items.Add("KHACHHANG");
+                chontb.Items.Add("PHONG");
+                chontb.Items.Add("DATPHONG");
+                chontb.Items.Add("HOADON");
 
-            
+                LoadDoanhThu();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi tải MainForm: " + ex.Message);
+            }
+
         }
 
         private void chontb_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string selectedTable = chontb.SelectedItem.ToString();
-            LoadTableData(selectedTable);
+            if (chontb.SelectedItem != null)
+                LoadTableData(chontb.SelectedItem.ToString());
         }
 
-        private DataTable originalTableData;  // dữ liệu gốc (chưa mã hóa)
-        private bool isEncryptedView = true;  // đang xem bản mã hóa hay không
+ // đang xem bản mã hóa hay không
 
 
         private void LoadTableData(string tableName)
@@ -75,7 +89,7 @@ namespace Form_QL_Khachsan_2._0
             {
                 OracleCommand cmd = new OracleCommand("pr_show_table_data", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("tenbang", OracleDbType.Varchar2).Value = tableName.ToUpper();
+                cmd.Parameters.Add("tenbang", OracleDbType.Varchar2).Value = tableName;
 
                 OracleParameter p_out = new OracleParameter("kq", OracleDbType.RefCursor)
                 {
@@ -87,157 +101,90 @@ namespace Form_QL_Khachsan_2._0
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                // Lưu lại dữ liệu gốc
                 originalTableData = dt.Copy();
 
                 // ====== 🔐 MÃ HÓA DES ======
-                byte[] key = Encoding.UTF8.GetBytes("12345678"); // key 8 byte (DES)
-                DataTable encryptedTable = dt.Copy();
+                byte[] key = Encoding.UTF8.GetBytes("12345678");
+                DataTable encrypted = dt.Copy();
 
-                foreach (DataRow row in encryptedTable.Rows)
+                foreach (DataRow row in encrypted.Rows)
                 {
-                    if (encryptedTable.Columns.Contains("CMND") && row["CMND"] != DBNull.Value)
+                    foreach (string col in new[] { "CMND", "SDT", "EMAIL" })
                     {
-                        try
+                        if (encrypted.Columns.Contains(col) && row[col] != DBNull.Value)
                         {
-                            string plain = row["CMND"].ToString();
-                            byte[] cipher = co.Encrypt(plain, key);
-                            row["CMND"] = Convert.ToBase64String(cipher);
+                            string plain = row[col].ToString();
+                            row[col] = Convert.ToBase64String(co.Encrypt(plain, key));
                         }
-                        catch { }
-                    }
-
-                    if (encryptedTable.Columns.Contains("SDT") && row["SDT"] != DBNull.Value)
-                    {
-                        try
-                        {
-                            string plain = row["SDT"].ToString();
-                            byte[] cipher = co.Encrypt(plain, key);
-                            row["SDT"] = Convert.ToBase64String(cipher);
-                        }
-                        catch { }
-                    }
-
-                    if (encryptedTable.Columns.Contains("EMAIL") && row["EMAIL"] != DBNull.Value)
-                    {
-                        try
-                        {
-                            string plain = row["EMAIL"].ToString();
-                            byte[] cipher = co.Encrypt(plain, key);
-                            row["EMAIL"] = Convert.ToBase64String(cipher);
-                        }
-                        catch { }
                     }
                 }
 
-                // Hiển thị bản mã hóa
-                dgv_hienthi.DataSource = encryptedTable;
+                dgv_hienthi.DataSource = encrypted;
                 isEncryptedView = true;
                 btn_giaima.Text = "Giải mã dữ liệu";
 
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi khi tải dữ liệu bảng {tableName}:\n{ex.Message}",
-                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi load dữ liệu bảng: " + ex.Message);
             }
 
-        }
-
-        private void LoadDoanhThu()
-        {
-            try
-            {
-                
-                OracleConnection conn = database.Get_Connect();
-                // đảm bảo conn hợp lệ
-                if (conn == null)
-                    throw new Exception("Không lấy được connection.");
-                if (conn.State != ConnectionState.Open)
-                    conn.Open();
-
-                using (OracleCommand cmd = new OracleCommand("fn_tong_doanhthu", conn))
-                {
-                    cmd.CommandType = CommandType.StoredProcedure;
-
-                    OracleParameter p_return = new OracleParameter();
-                    p_return.Direction = ParameterDirection.ReturnValue;
-                    p_return.OracleDbType = OracleDbType.Decimal;
-                    cmd.Parameters.Add(p_return);
-
-                    cmd.ExecuteNonQuery();
-
-                    decimal doanhThu = ((Oracle.ManagedDataAccess.Types.OracleDecimal)p_return.Value).Value;
-
-                    // DÙNG lại đối tượng co đã tạo ở MainFormN_Load (không tạo KQ mới)
-                    if (co == null)
-                        co = new KQ(conn);  // fallback nếu chưa có
-
-                    string doanhThuMaHoa = co.MaHoaCaesar_Func(doanhThu.ToString(), 22);
-
-                    txt_xemdoanhthu.Text = doanhThuMaHoa + " VND";
-                }
-                // Không dispose conn ở đây vì nó là connection toàn cục
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi lấy doanh thu: " + ex.Message,
-                    "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
 
         private bool isDecrypted = false;  // trạng thái nút
         private string originalText = "";  // lưu giá trị mã hóa gốc
 
+        private void LoadDoanhThu()
+        {
+            try
+            {
+                OracleCommand cmd = new OracleCommand("fn_tong_doanhthu", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                OracleParameter ret = new OracleParameter
+                {
+                    OracleDbType = OracleDbType.Decimal,
+                    Direction = ParameterDirection.ReturnValue
+                };
+                cmd.Parameters.Add(ret);
+
+                cmd.ExecuteNonQuery();
+
+                decimal dt = ((OracleDecimal)ret.Value).Value;
+
+                string encrypted = co.MaHoaCaesar_Func(dt.ToString(), 22);
+
+                txt_xemdoanhthu.Text = encrypted + " VND";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi lấy doanh thu: " + ex.Message);
+            }
+        }
+
+
+
         private void btn_xemdoanhthu_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(txt_xemdoanhthu.Text))
+            if (txt_xemdoanhthu.Text == "") return;
+
+            if (!isDecrypted)
             {
-                try
-                {
-                    if (!isDecrypted)
-                    {
-                        originalText = txt_xemdoanhthu.Text.Trim();
-                        string encryptText = originalText;
+                originalText = txt_xemdoanhthu.Text;
 
-                        //Bỏ phần "VND"
-                        if (encryptText.EndsWith("VND", StringComparison.OrdinalIgnoreCase))
-                        {
-                            encryptText = encryptText.Replace("VND", "").Trim();
-                        }
+                string encrypted = originalText.Replace("VND", "").Trim();
 
-                        int key = 22;
+                string plain = co.GiaiMaCaesar_Func(encrypted, 22);
 
-                        //Giải mã Caesar
-                        string rs = co.GiaiMaCaesar_Func(encryptText, key);
-
-                        //Hiển thị kết quả ra textbox
-                        txt_xemdoanhthu.Text = rs + " VND";
-
-                        isDecrypted = true;
-                        btn_xemdoanhthu.Text = "Ẩn doanh thu";
-                    }
-                    else
-                    {
-                        //Khôi phục lại giá trị ban đầu
-                        txt_xemdoanhthu.Text = originalText;
-
-                        //Đổi lại trạng thái
-                        isDecrypted = false;
-                        btn_xemdoanhthu.Text = "Xem doanh thu";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Lỗi khi giải mã doanh thu: " + ex.Message,
-                        "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                txt_xemdoanhthu.Text = plain + " VND";
+                btn_xemdoanhthu.Text = "Ẩn doanh thu";
+                isDecrypted = true;
             }
             else
             {
-                MessageBox.Show("Vui lòng nhập thông điệp cần giải mã!",
-                    "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txt_xemdoanhthu.Focus();
+                txt_xemdoanhthu.Text = originalText;
+                btn_xemdoanhthu.Text = "Xem doanh thu";
+                isDecrypted = false;
             }
         }
 
@@ -255,23 +202,16 @@ namespace Form_QL_Khachsan_2._0
 
         private void btn_giaima_Click(object sender, EventArgs e)
         {
-            if (originalTableData == null || originalTableData.Rows.Count == 0)
-            {
-                MessageBox.Show("Chưa có dữ liệu để giải mã!", "Thông báo",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
+            if (originalTableData == null) return;
 
             if (isEncryptedView)
             {
-                // Hiển thị dữ liệu gốc
                 dgv_hienthi.DataSource = originalTableData;
                 btn_giaima.Text = "Ẩn dữ liệu gốc (hiển mã hóa)";
                 isEncryptedView = false;
             }
             else
             {
-                // Mã hóa lại khi muốn ẩn dữ liệu
                 LoadTableData(chontb.SelectedItem.ToString());
             }
         }

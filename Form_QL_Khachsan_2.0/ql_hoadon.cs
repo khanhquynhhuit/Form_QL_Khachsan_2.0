@@ -14,10 +14,13 @@ namespace Form_QL_Khachsan_2._0
     public partial class ql_hoadon : Form
     {
         private bool hienthiGiaiMa = false;
+        private string desKey = "12345678";
 
         public ql_hoadon()
         {
             InitializeComponent();
+            this.Load += new System.EventHandler(this.ql_hoadon_Load);
+
         }
 
         private void ql_hoadon_Load(object sender, EventArgs e)
@@ -35,12 +38,10 @@ namespace Form_QL_Khachsan_2._0
                 OracleCommand cmd = new OracleCommand("GET_HOADON", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                // Tham số đầu vào (p_show_real)
                 cmd.Parameters.Add("p_show_real", OracleDbType.Int32).Value = hienthiGiaiMa ? 1 : 0;
+                cmd.Parameters.Add("p_key", OracleDbType.Varchar2).Value = desKey;
+                cmd.Parameters.Add("p_cursor", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
 
-                // Tham số output (cursor)
-                OracleParameter cursor = new OracleParameter("p_cursor", OracleDbType.RefCursor, ParameterDirection.Output);
-                cmd.Parameters.Add(cursor);
 
                 OracleDataAdapter da = new OracleDataAdapter(cmd);
                 DataTable dt = new DataTable();
@@ -58,6 +59,8 @@ namespace Form_QL_Khachsan_2._0
                 MessageBox.Show("Lỗi khi tải dữ liệu hóa đơn: " + ex.Message);
             }
         }
+
+
 
         private void hien_dl_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -85,12 +88,12 @@ namespace Form_QL_Khachsan_2._0
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 // Tham số đầu vào
-                cmd.Parameters.Add("p_mahd", OracleDbType.Varchar2).Value = txt_hd.Text.Trim();
+                cmd.Parameters.Add("p_mahd", OracleDbType.Int32).Value = int.Parse(txt_hd.Text.Trim());
                 cmd.Parameters.Add("p_show_real", OracleDbType.Int32).Value = hienthiGiaiMa ? 1 : 0;
+                cmd.Parameters.Add("p_key", OracleDbType.Varchar2).Value = desKey;
+                cmd.Parameters.Add("p_cursor", OracleDbType.RefCursor).Direction = ParameterDirection.Output;
 
-                // Tham số output (cursor)
-                OracleParameter cursor = new OracleParameter("p_cursor", OracleDbType.RefCursor, ParameterDirection.Output);
-                cmd.Parameters.Add(cursor);
+
 
                 OracleDataAdapter adapter = new OracleDataAdapter(cmd);
                 DataTable dt = new DataTable();
@@ -107,13 +110,23 @@ namespace Form_QL_Khachsan_2._0
             {
                 MessageBox.Show("Lỗi khi tìm hóa đơn: " + ex.Message);
             }
+
         }
 
         private void btn_mahoa_Click(object sender, EventArgs e)
         {
             hienthiGiaiMa = !hienthiGiaiMa;
             btn_mahoa.Text = hienthiGiaiMa ? "Ẩn số tiền" : "Hiện số tiền thật";
-            load_hoadon();
+
+            if (!string.IsNullOrWhiteSpace(txt_hd.Text))
+            {
+                btn_tim_Click(sender, e);
+            }
+            else
+            {
+                load_hoadon();
+            }
+
         }
     }
 }
