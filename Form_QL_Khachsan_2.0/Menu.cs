@@ -78,5 +78,19 @@ namespace Form_QL_Khachsan_2._0
                 MessageBox.Show("Đăng xuất toàn bộ session thất bại!", "Thất bại", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
+
+        private void btn_datphong_Click(object sender, EventArgs e)
+        {
+            this.Hide();
+            DatPhong m = new DatPhong();
+            m.Show();
+        }
+
+        private void btnktks_Click(object sender, EventArgs e)
+        {
+            this.Hide();
+            KiemTraChuKy m = new KiemTraChuKy();
+            m.Show();
+        }
     }
 }

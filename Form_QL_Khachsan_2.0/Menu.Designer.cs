@@ -32,6 +32,8 @@
             this.btn_logout = new System.Windows.Forms.Button();
             this.btn_admin = new System.Windows.Forms.Button();
             this.lb_chaomung = new System.Windows.Forms.Label();
+            this.btn_datphong = new System.Windows.Forms.Button();
+            this.btnktks = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnQuanLyTK
@@ -77,11 +79,36 @@
             this.lb_chaomung.TabIndex = 33;
             this.lb_chaomung.Text = "Chào mừng";
             // 
+            // btn_datphong
+            // 
+            this.btn_datphong.BackColor = System.Drawing.SystemColors.ControlDark;
+            this.btn_datphong.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btn_datphong.Location = new System.Drawing.Point(375, 324);
+            this.btn_datphong.Name = "btn_datphong";
+            this.btn_datphong.Size = new System.Drawing.Size(134, 38);
+            this.btn_datphong.TabIndex = 34;
+            this.btn_datphong.Text = "Đặt Phòng ";
+            this.btn_datphong.UseVisualStyleBackColor = false;
+            this.btn_datphong.Click += new System.EventHandler(this.btn_datphong_Click);
+            // 
+            // btnktks
+            // 
+            this.btnktks.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnktks.Location = new System.Drawing.Point(143, 326);
+            this.btnktks.Name = "btnktks";
+            this.btnktks.Size = new System.Drawing.Size(226, 45);
+            this.btnktks.TabIndex = 35;
+            this.btnktks.Text = "Kiểm tra kí số";
+            this.btnktks.UseVisualStyleBackColor = true;
+            this.btnktks.Click += new System.EventHandler(this.btnktks_Click);
+            // 
             // Menu
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.btnktks);
+            this.Controls.Add(this.btn_datphong);
             this.Controls.Add(this.lb_chaomung);
             this.Controls.Add(this.btn_admin);
             this.Controls.Add(this.btn_logout);
@@ -99,5 +126,7 @@
         private System.Windows.Forms.Button btn_logout;
         private System.Windows.Forms.Button btn_admin;
         private System.Windows.Forms.Label lb_chaomung;
+        private System.Windows.Forms.Button btn_datphong;
+        private System.Windows.Forms.Button btnktks;
     }
 }
